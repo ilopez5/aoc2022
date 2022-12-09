@@ -1,11 +1,11 @@
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 enum Hand {
     Rock,
     Paper,
     Scissors,
 }
 
-#[derive(Copy, Clone)]
+#[derive(PartialEq)]
 enum Outcome {
     Win,
     Loss,
@@ -13,64 +13,54 @@ enum Outcome {
 }
 
 fn main() {
-    let input: &str = include_str!("input.txt");
+    let input = include_str!("inputs/input2.txt");
     let lines: Vec<&str> = input.lines().map(str::trim).collect();
 
-    let part1: u32 = part1(lines.clone());
+    let part1 = part1(&lines);
     println!("Part 1: {}", part1);
 
-    let part2: u32 = part2(lines);
+    let part2 = part2(&lines);
     println!("Part 2: {}", part2);
 }
 
-fn part1(lines: Vec<&str>) -> u32 {
+fn part1(lines: &[&str]) -> u32 {
     let mut score: u32 = 0;
-
     for line in lines {
         let round: Vec<&str> = line.split_whitespace().collect();
-
-        //handle the elf first
         let their_hand = get_elf_hand(round[0]);
         let my_hand = get_elf_hand(round[1]);
-
-        //score always increased by choice rank
-        score += calculate_score(their_hand, my_hand);
+        score += calculate_score(&their_hand, &my_hand);
     }
     score
 }
 
-fn part2(lines: Vec<&str>) -> u32 {
-    let mut score: u32 = 0;
-
+fn part2(lines: &[&str]) -> u32 {
+    let mut score = 0;
     for line in lines {
         let round: Vec<&str> = line.split_whitespace().collect();
-
-        //handle the elf first
         let their_hand = get_elf_hand(round[0]);
         let match_outcome = get_match_outcome(round[1]);
 
-        score += match match_outcome {
-            Outcome::Draw => calculate_score(their_hand, their_hand),
-            _ => {
-                let my_hand = get_human_hand(their_hand, match_outcome);
-                calculate_score(their_hand, my_hand)
-            }
+        score += if match_outcome == Outcome::Draw {
+            calculate_score(&their_hand, &their_hand)
+        } else {
+            let my_hand = get_human_hand(&their_hand, &match_outcome);
+            calculate_score(&their_hand, &my_hand)
         };
     }
     score
 }
 
-fn calculate_score(them: Hand, me: Hand) -> u32 {
-    match (them, me) {
-        //draw
-        (Hand::Paper, Hand::Paper)
-        | (Hand::Rock, Hand::Rock)
-        | (Hand::Scissors, Hand::Scissors) => 3 + get_hand_rank(me),
-        //win
-        (Hand::Rock, Hand::Paper)
-        | (Hand::Paper, Hand::Scissors)
-        | (Hand::Scissors, Hand::Rock) => 6 + get_hand_rank(me),
-        _ => get_hand_rank(me),
+fn calculate_score(them: &Hand, me: &Hand) -> u32 {
+    get_hand_rank(me) + if *them == *me {
+        3
+    } else {
+        match (*them, *me) {
+            (Hand::Rock, Hand::Paper)
+            | (Hand::Paper, Hand::Scissors)
+            | (Hand::Scissors, Hand::Rock) => 6,
+            _ => 0,
+        }
     }
 }
 
@@ -86,7 +76,7 @@ fn get_elf_hand(choice: &str) -> Hand {
     }
 }
 
-fn get_human_hand(them: Hand, result: Outcome) -> Hand {
+fn get_human_hand(them: &Hand, result: &Outcome) -> Hand {
     match them {
         Hand::Rock => match result {
             Outcome::Win => Hand::Paper,
@@ -115,7 +105,7 @@ fn get_match_outcome(choice: &str) -> Outcome {
     }
 }
 
-fn get_hand_rank(hand: Hand) -> u32 {
+fn get_hand_rank(hand: &Hand) -> u32 {
     match hand {
         Hand::Rock => 1,
         Hand::Paper => 2,

@@ -1,4 +1,3 @@
-#[derive(Debug)]
 pub struct Dir {
     pub name: &'static str,
     pub files: Vec<File>,
@@ -15,13 +14,11 @@ impl Dir {
     }
 
     pub fn size(&self) -> usize {
-        let mut size: usize = self.files.iter().map(|f| f.size).sum();
-        size += self.dirs.iter().map(|d| d.size()).sum::<usize>();
-        size
+        let size: usize = self.files.iter().map(|f| f.size).sum();
+        size + self.dirs.iter().map(|d| d.size()).sum::<usize>()
     }
 }
 
-#[derive(Debug)]
 pub struct File {
     pub name: &'static str,
     pub size: usize,
@@ -36,7 +33,6 @@ impl File {
     }
 }
 
-
 fn main() {
     let input = include_str!("inputs/input7.txt");
 
@@ -45,12 +41,12 @@ fn main() {
     
     build_tree(&mut root, &lines[1..]);
 
-    let part1 = part1(&root, 100000);
-    println!("Part 1: {}", part1);
-
     const TOTAL: usize = 70000000;
     const NEEDED: usize = 30000000;
     let remaining = NEEDED - (TOTAL - root.size());
+
+    let part1 = part1(&root, 100000);
+    println!("Part 1: {}", part1);
     
     let part2 = part2(&root, remaining);
     println!("Part 2: {}", part2);
@@ -58,17 +54,16 @@ fn main() {
 
 fn part1(dir: &Dir, k: usize) -> usize {
     let size: usize = dir.size();
-    if size <= k {
-        return size + dir.dirs.iter().map(|d| part1(&d, k)).sum::<usize>();
+    dir.dirs.iter().map(|d| part1(&d, k)).sum::<usize>() + if size <= k {
+        size
     } else {
-        return dir.dirs.iter().map(|d| part1(&d, k)).sum::<usize>();
+        0
     }
 }
 
 
 fn part2(dir: &Dir, needed: usize) -> usize {
     let size = dir.size();
-
     if size >= needed {
         let min_subdir_size = dir.dirs
             .iter()
@@ -82,7 +77,6 @@ fn part2(dir: &Dir, needed: usize) -> usize {
 
 fn build_tree(root: &mut Dir, lines: &[&'static str]) {
     let mut history: Vec<&str> = vec![];
-    
     for (i, line) in lines.iter().enumerate() {
         let cwd = traverse_mut(&history, root);
 

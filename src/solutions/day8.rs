@@ -15,9 +15,9 @@ fn main() {
     println!("Part 2: {}", part2);
 }
 
-fn part1(grid: &Vec<Vec<u32>>) -> u32 {
+fn part1(grid: &[Vec<u32>]) -> u32 {
     let dim = grid.len() - 1;
-    let mut visible: u32 = 0;
+    let mut visible = 0;
     for (r, row) in grid.iter().enumerate() {
         for (c, tree) in row.iter().enumerate() {
             visible += if r == 0 || c == 0 || r == dim || c == dim {
@@ -43,7 +43,7 @@ fn part1(grid: &Vec<Vec<u32>>) -> u32 {
 
 fn part2(grid: &Vec<Vec<u32>>) -> u32 {
     let dim = grid.len() - 1;
-    let mut max_scenic_score: u32 = 0;
+    let mut max_scenic_score = 0;
 
     for (r, row) in grid.iter().enumerate() {
         for (c, tree) in row.iter().enumerate() {

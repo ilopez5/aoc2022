@@ -1,17 +1,18 @@
 use std::collections::HashSet;
 
 fn main() {
-    let input: &str = include_str!("inputs/input3.txt");
+    let input = include_str!("inputs/input3.txt");
+
     let lines: Vec<&str> = input.lines().map(str::trim).collect();
 
-    let part1: u32 = part1(&lines);
+    let part1 = part1(&lines);
     println!("Part 1: {}", part1);
 
-    let part2: u32 = part2(&lines);
+    let part2 = part2(&lines);
     println!("Part 2: {}", part2);
 }
 
-fn part1(lines: &Vec<&str>) -> u32 {
+fn part1(lines: &[&str]) -> u32 {
     let mut count: u32 = 0;
     for line in lines {
         let size = line.len();
@@ -35,7 +36,7 @@ fn part1(lines: &Vec<&str>) -> u32 {
     count
 }
 
-fn part2(lines: &Vec<&str>) -> u32 {
+fn part2(lines: &[&str]) -> u32 {
     let mut count: u32 = 0;
 
     let mut elf1 = HashSet::<char>::new();

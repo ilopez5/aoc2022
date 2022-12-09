@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 fn main() {
-    let test = "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg";
     let input = include_str!("inputs/input6.txt");
 
     let part1 = solution(input, 4);

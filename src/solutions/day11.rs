@@ -2,11 +2,13 @@
 enum Op {
     Add(usize),
     Mul(usize),
-    Div,
+    Div(usize),
+    Mod(usize),
     Square,
 }
 
-type Item = Vec<Op>;
+type Item = usize;
+type Target = usize;
 
 #[derive(Clone, Debug)]
 struct Monkey {
@@ -19,33 +21,29 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn fling(&self, item: &mut Item, part1: bool) -> usize {
-        item.push(self.operation);
-        if part1 {
-            item.push(Op::Div);
+    fn inspect(&self, idx: usize) -> Item {
+        let item = self.items[idx];
+        match self.operation {
+            Op::Add(addend) => item + addend,
+            Op::Mul(factor) => item * factor,
+            Op::Square => item * item,
+            _ => panic!(),
         }
+    }
 
-        let mut solution = 0;
-        for op in item {
-            solution = match op {
-                Op::Add(addend) => solution + *addend,
-                Op::Mul(factor) => solution * *factor,
-                Op::Square => solution * solution,
-                Op::Div => solution / 3,
-            };
-            if !part1 {
-                solution %= self.divisor;
-            }
-        }
-
-        if part1 {
-            solution %= self.divisor;
-        }
-
-        if solution == 0 {
+    fn decide(&self, item: Item) -> Target {
+        if item % self.divisor == 0 {
             self.target1
         } else {
             self.target2
+        }
+    }
+
+    fn reduce(&self, item: Item, reducer: Op) -> Item {
+        match reducer {
+            Op::Mod(modulus) => item % modulus,
+            Op::Div(dividend) => item / dividend,
+            _ => panic!(),
         }
     }
 
@@ -69,20 +67,24 @@ fn main() {
 
 fn solution(monkeys: &mut [Monkey], part1: bool) -> usize {
     let rounds = if part1 { 20 } else { 10000 };
-    for j in 0..rounds {
-        if j != 0 && j % 1000 == 0 {
-            println!("Checkpoint: {j}/{rounds}");
-        }
 
+    let reducer = if part1 {
+        Op::Div(3)
+    } else {
+        let lcm = monkeys.iter().map(|x| x.divisor).product();
+        Op::Mod(lcm)
+    };
+
+    for _ in 0..rounds {
         for m in 0..monkeys.len() {
             for i in 0..monkeys[m].items.len() {
                 let m1 = &monkeys[m];
-
-                let mut item: Item = m1.items[i].clone();
-                let target = m1.fling(&mut item, part1);
+                let result = m1.inspect(i);
+                let worry = m1.reduce(result, reducer);
+                let target = m1.decide(worry);
 
                 let m2 = &mut monkeys[target];
-                m2.catch(item);
+                m2.catch(worry);
             }
             let m1 = &mut monkeys[m];
             m1.inspections += m1.items.len();
@@ -120,7 +122,7 @@ fn parse_input(lines: &[&str]) -> Vec<Monkey> {
                 .unwrap()
                 .1
                 .split(',')
-                .map(|x| vec![Op::Add(x.trim().parse().unwrap())])
+                .map(|x| x.trim().parse::<Item>().unwrap())
                 .collect();
         } else if line.starts_with("Operation: new = ") {
             let mut tokens = line.split_once('=').unwrap().1.trim().split_whitespace();

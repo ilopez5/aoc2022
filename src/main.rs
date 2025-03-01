@@ -1,156 +1,125 @@
-#[derive(Copy, Clone, Debug)]
-enum Op {
-    Add(usize),
-    Mul(usize),
-    Div(usize),
-    Mod(usize),
-    Square,
+pub struct Dir {
+    pub name: &'static str,
+    pub files: Vec<File>,
+    pub dirs: Vec<Dir>,
 }
 
-type Item = usize;
-type Target = usize;
+impl Dir {
+    pub fn new(name: &'static str) -> Self {
+        Self {
+            name: name,
+            files: Vec::new(),
+            dirs: Vec::new(),
+        }
+    }
 
-#[derive(Clone, Debug)]
-struct Monkey {
-    items: Vec<Item>,
-    operation: Op,
-    divisor: usize,
-    target1: usize,
-    target2: usize,
-    inspections: usize,
+    pub fn size(&self) -> usize {
+        let size: usize = self.files.iter().map(|f| f.size).sum();
+        size + self.dirs.iter().map(|d| d.size()).sum::<usize>()
+    }
 }
 
-impl Monkey {
-    fn inspect(&self, idx: usize) -> Item {
-        let item = self.items[idx];
-        match self.operation {
-            Op::Add(addend) => item + addend,
-            Op::Mul(factor) => item * factor,
-            Op::Square => item * item,
-            _ => panic!(),
-        }
-    }
+pub struct File {
+    pub name: &'static str,
+    pub size: usize,
+}
 
-    fn decide(&self, item: Item) -> Target {
-        if item % self.divisor == 0 {
-            self.target1
-        } else {
-            self.target2
+impl File {
+    pub fn new(name: &'static str, size: usize) -> Self {
+        Self {
+            name: name,
+            size: size,
         }
-    }
-
-    fn reduce(&self, item: Item, reducer: Op) -> Item {
-        match reducer {
-            Op::Mod(modulus) => item % modulus,
-            Op::Div(dividend) => item / dividend,
-            _ => panic!(),
-        }
-    }
-
-    fn catch(&mut self, item: Item) {
-        self.items.push(item);
     }
 }
 
 fn main() {
-    let input = include_str!("inputs/input11.txt");
-    let lines: Vec<&str> = input.lines().map(str::trim).collect();
+    let input = include_str!("inputs/input7.txt");
 
-    let mut monkeys: Vec<Monkey> = parse_input(&lines);
+    let mut root: Dir = Dir::new("/");
+    let lines: Vec<&str> = input.lines().collect();
+    
+    build_tree(&mut root, &lines[1..]);
 
-    let part1 = solution(&mut monkeys.clone(), true);
+    const TOTAL: usize = 70000000;
+    const NEEDED: usize = 30000000;
+    let remaining = NEEDED - (TOTAL - root.size());
+
+    let part1 = part1(&root, 100000);
     println!("Part 1: {}", part1);
-
-    let part2 = solution(&mut monkeys, false);
+    
+    let part2 = part2(&root, remaining);
     println!("Part 2: {}", part2);
 }
 
-fn solution(monkeys: &mut [Monkey], part1: bool) -> usize {
-    let rounds = if part1 { 20 } else { 10000 };
-
-    let reducer = if part1 {
-        Op::Div(3)
+fn part1(dir: &Dir, k: usize) -> usize {
+    let size: usize = dir.size();
+    dir.dirs.iter().map(|d| part1(&d, k)).sum::<usize>() + if size <= k {
+        size
     } else {
-        let lcm = monkeys.iter().map(|x| x.divisor).product();
-        Op::Mod(lcm)
-    };
-
-    for _ in 0..rounds {
-        for m in 0..monkeys.len() {
-            for i in 0..monkeys[m].items.len() {
-                let m1 = &monkeys[m];
-                let result = m1.inspect(i);
-                let worry = m1.reduce(result, reducer);
-                let target = m1.decide(worry);
-
-                let m2 = &mut monkeys[target];
-                m2.catch(worry);
-            }
-            let m1 = &mut monkeys[m];
-            m1.inspections += m1.items.len();
-            m1.items.clear();
-        }
+        0
     }
-    let mut active: Vec<usize> = monkeys.iter().map(|m| m.inspections).collect();
-    active.sort_by_key(|l| std::cmp::Reverse(*l));
-    active.iter().take(2).product()
 }
 
-fn parse_input(lines: &[&str]) -> Vec<Monkey> {
-    let mut monkeys: Vec<Monkey> = vec![];
 
-    let mut items: Vec<Item> = vec![];
-    let mut operation: Op = Op::Square;
-    let mut divisor = 0;
-    let mut target1 = 0;
-    let mut target2 = 0;
-    for line in lines {
-        if line.is_empty() {
-            let monke = Monkey {
-                items,
-                operation,
-                divisor,
-                target1,
-                target2,
-                inspections: 0,
-            };
-            monkeys.push(monke);
-            items = vec![];
-        } else if line.starts_with("Starting items:") {
-            items = line
-                .split_once(':')
-                .unwrap()
-                .1
-                .split(',')
-                .map(|x| x.trim().parse::<Item>().unwrap())
-                .collect();
-        } else if line.starts_with("Operation: new = ") {
-            let mut tokens = line.split_once('=').unwrap().1.trim().split_whitespace();
-            tokens.next();
-            let op = tokens.next().unwrap();
-            let operand = tokens.next().unwrap();
-            operation = match (op, operand) {
-                ("*", "old") => Op::Square,
-                ("*", _) => Op::Mul(operand.parse().unwrap()),
-                ("+", _) => Op::Add(operand.parse().unwrap()),
-                _ => panic!(),
-            }
-        } else if line.starts_with("Test: divisible by") {
-            divisor = line[19..].parse().unwrap();
-        } else if line.starts_with("If true: throw to monkey") {
-            target1 = line[25..].parse().unwrap();
-        } else if line.starts_with("If false: throw to monkey") {
-            target2 = line[26..].parse().unwrap();
+fn part2(dir: &Dir, needed: usize) -> usize {
+    let size = dir.size();
+    if size >= needed {
+        let min_subdir_size = dir.dirs
+            .iter()
+            .map(|d| part2(&d, needed))
+            .reduce(|acc, s| std::cmp::min(acc, s)) 
+            .unwrap_or(std::usize::MAX);
+        return std::cmp::min(size, min_subdir_size);
+    }
+    std::usize::MAX
+}
+
+fn build_tree(root: &mut Dir, lines: &[&'static str]) {
+    let mut history: Vec<&str> = vec![];
+    for (i, line) in lines.iter().enumerate() {
+        let cwd = traverse_mut(&history, root);
+
+        if *line == "$ ls" {
+            parse_dir(cwd, &lines[i+1..]);
+        } else if *line == "$ cd .." {
+            history.pop();
+        } else if &line[0..4] == "$ cd" {
+            let tokens: Vec<&str> = line.split_whitespace().collect();
+            history.push(tokens[2]);
         }
     }
-    let monke = Monkey {
-        items,
-        operation,
-        divisor,
-        target1,
-        target2,
-        inspections: 0,
-    };
-    monkeys.push(monke);
-    monkeys
+}
+
+fn traverse_mut<'t>(history: &[&str], root: &'t mut Dir) -> &'t mut Dir {
+    let mut cwd = root;
+    for dir_name in history {
+        cwd = find(cwd, dir_name);
+    }
+    cwd
+}
+
+fn find<'f>(cwd: &'f mut Dir, name: &str) -> &'f mut Dir {
+    for dir in cwd.dirs.iter_mut() {
+        if name == dir.name {
+            return dir;
+        }
+    }
+    panic!();
+}
+
+fn parse_dir(parent: &mut Dir, lines: &[&'static str]) {
+    for line in lines {
+        let tokens: Vec::<&str> = line.split_whitespace().collect();
+        let first = tokens[0];
+
+        if first == "dir" {
+            parent.dirs.push(Dir::new(tokens[1]));
+        } else if first != "$" {
+            let size = first.parse().unwrap();
+            parent.files.push(File::new(tokens[1], size));
+        } else {
+            return;
+        }
+    }
 }

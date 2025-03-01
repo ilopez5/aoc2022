@@ -8,7 +8,7 @@ impl Dir {
     pub fn new(name: &'static str) -> Self {
         Self {
             name: name,
-            files: Vec::new(),
+            fils: Vec::new(),
             dirs: Vec::new(),
         }
     }
